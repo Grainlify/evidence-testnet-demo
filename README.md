@@ -12,6 +12,8 @@ cargo test
 stellar contract build
 ```
 
+The v2 contract adds `last_message`, `unique_signers` and an admin-only `upgrade`.
+
 Testnet only. Testnet is reset from time to time, which removes the contract.
 
 CI: `ci/github-actions-ci.yml` is the workflow, kept outside `.github/workflows/` until it can be pushed (the pushing token lacks the `workflow` scope).
