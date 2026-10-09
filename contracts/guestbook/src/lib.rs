@@ -9,6 +9,7 @@ enum Key {
     Count,
     Signer(Address),
     Last,
+    Unique,
 }
 
 #[contracterror]
@@ -44,10 +45,19 @@ impl Guestbook {
         let count: u32 = env.storage().instance().get(&Key::Count).unwrap_or(0) + 1;
         env.storage().instance().set(&Key::Count, &count);
         let mine: u32 = env.storage().persistent().get(&Key::Signer(from.clone())).unwrap_or(0) + 1;
+        if mine == 1 {
+            let unique: u32 = env.storage().instance().get(&Key::Unique).unwrap_or(0) + 1;
+            env.storage().instance().set(&Key::Unique, &unique);
+        }
         env.storage().persistent().set(&Key::Signer(from.clone()), &mine);
         env.storage().instance().set(&Key::Last, &(from.clone(), msg.clone()));
         env.events().publish((symbol_short!("signed"), from), msg);
         Ok(count)
+    }
+
+    /// How many different accounts have signed.
+    pub fn unique_signers(env: Env) -> u32 {
+        env.storage().instance().get(&Key::Unique).unwrap_or(0)
     }
 
     /// The most recent signer and message, if any.

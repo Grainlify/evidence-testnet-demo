@@ -51,3 +51,20 @@ fn remembers_the_last_message() {
     c.sign(&bob, &symbol_short!("second"));
     assert_eq!(c.last_message(), Some((bob, symbol_short!("second"))));
 }
+
+#[test]
+fn counts_unique_signers() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let id = env.register(Guestbook, ());
+    let c = GuestbookClient::new(&env, &id);
+    let admin = Address::generate(&env);
+    let a = Address::generate(&env);
+    let b = Address::generate(&env);
+    c.init(&admin);
+    c.sign(&a, &symbol_short!("one"));
+    c.sign(&a, &symbol_short!("two"));
+    c.sign(&b, &symbol_short!("three"));
+    assert_eq!(c.count(), 3);
+    assert_eq!(c.unique_signers(), 2);
+}
