@@ -36,3 +36,18 @@ fn sign_needs_init() {
     let alice = Address::generate(&env);
     assert_eq!(c.try_sign(&alice, &symbol_short!("hi")), Err(Ok(Error::NotInitialized)));
 }
+
+#[test]
+fn remembers_the_last_message() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let id = env.register(Guestbook, ());
+    let c = GuestbookClient::new(&env, &id);
+    let admin = Address::generate(&env);
+    let bob = Address::generate(&env);
+    c.init(&admin);
+    assert_eq!(c.last_message(), None);
+    c.sign(&bob, &symbol_short!("first"));
+    c.sign(&bob, &symbol_short!("second"));
+    assert_eq!(c.last_message(), Some((bob, symbol_short!("second"))));
+}

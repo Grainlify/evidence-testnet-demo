@@ -1,13 +1,14 @@
 #![no_std]
 //! Guestbook: a tiny Soroban contract used as a test project for Grainlify's evidence engine.
 //! Anyone can sign (with their own auth); each signature emits a `signed` event.
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol};
+use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, Address, BytesN, Env, Symbol};
 
 #[contracttype]
 enum Key {
     Admin,
     Count,
     Signer(Address),
+    Last,
 }
 
 #[contracterror]
@@ -44,8 +45,22 @@ impl Guestbook {
         env.storage().instance().set(&Key::Count, &count);
         let mine: u32 = env.storage().persistent().get(&Key::Signer(from.clone())).unwrap_or(0) + 1;
         env.storage().persistent().set(&Key::Signer(from.clone()), &mine);
+        env.storage().instance().set(&Key::Last, &(from.clone(), msg.clone()));
         env.events().publish((symbol_short!("signed"), from), msg);
         Ok(count)
+    }
+
+    /// The most recent signer and message, if any.
+    pub fn last_message(env: Env) -> Option<(Address, Symbol)> {
+        env.storage().instance().get(&Key::Last)
+    }
+
+    /// Admin-only: replace the contract code, keeping its storage.
+    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), Error> {
+        let admin: Address = env.storage().instance().get(&Key::Admin).ok_or(Error::NotInitialized)?;
+        admin.require_auth();
+        env.deployer().update_current_contract_wasm(new_wasm_hash);
+        Ok(())
     }
 
     pub fn count(env: Env) -> u32 {
